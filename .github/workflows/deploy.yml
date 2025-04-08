@@ -1,37 +1,117 @@
-name: Build
+name: Build and Deploy
 on:
   push:
     branches: [ master ]
+
 jobs:
-  deploy:
+  security:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout	
+      - name: Checkout
         uses: actions/checkout@v4.2.2
         with:
           submodules: recursive
+
+      - name: Run dependency check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'chains-test'
+          path: '.'
+          format: 'HTML'
+          out: 'reports'
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: reports/
+
+  deploy:
+    needs: security
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://chainid.network
+    steps:
+      # Checkout repository with submodules
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          submodules: recursive
+
+      # Setup Java
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      # Build the project
       - name: Build
         run: |
           ./gradlew run
+
+      # Setup Node.js environment with caching
       - name: Set Node.js 18.x
         uses: actions/setup-node@v4.2.0
         with:
           node-version: 18.x
+          cache: 'yarn'
+          cache-dependency-path: 'website/yarn.lock'
+
+      # Install dependencies
       - name: Run yarn install
         uses: borales/actions-yarn@v4
         with:
-         dir: 'website'
-         cmd: install # will run `yarn install` command
+          dir: 'website'
+          cmd: install
+
+      # Build website
       - name: Run yarn build
         uses: borales/actions-yarn@v4
         with:
           dir: 'website'
-          cmd: run build # will run `yarn test` command     
+          cmd: run build
+
+      # Copy build output to website directory
       - name: Merge
         run: |
           cp -a output/. website/public/
+
+      # Deploy to GitHub Pages
       - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@4.1.4
+        uses: JamesIves/github-pages-deploy-action@v4.1.4
         with:
           branch: gh-pages
           folder: website/public
+          clean: true
+          clean-exclude: |
+            .git
+            .gitignore
+
+      # Notify on successful deployment
+      - name: Notify on success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 Deployment successful! The changes are now live at https://chainid.network'
+            })
+
+      # Notify on failure
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Deployment failed! Please check the logs for details.'
+            })

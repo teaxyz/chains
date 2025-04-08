@@ -14,6 +14,6 @@ publishing {
 
 dependencies {
     implementation(project(":model"))
-    implementation("com.squareup.okhttp3:okhttp:4.9.3")
-    implementation("com.squareup.moshi:moshi:1.14.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.moshi:moshi:1.15.0")
 }

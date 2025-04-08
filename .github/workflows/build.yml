@@ -1,25 +1,69 @@
 name: Build
 on: [pull_request]
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        java: [17, 21]
+    runs-on: ${{ matrix.os }}
     steps:
+      # Checkout repository with submodules
       - name: Checkout
         uses: actions/checkout@v4.2.2
         with:
           submodules: recursive
 
+      # Setup Java
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      # Get list of changed files
       - name: Get changed files
         id: changed-files
         uses: step-security/changed-files@v45.0.1
 
+      # Run checks on changed files
       - name: Check changed files
         run: |
           for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
             ./gradlew clean run --args="verbose singleChainCheck $file"
           done
 
+      # Run tests with coverage
+      - name: Run tests with coverage
+        run: |
+          ./gradlew test jacocoTestReport
+
+      # Upload test coverage report
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./build/reports/jacoco/test/jacocoTestReport.xml
+          fail_ci_if_error: true
+
+      # Run static code analysis
+      - name: Run static code analysis
+        run: |
+          ./gradlew detekt
+
+      # Build the project
       - name: Build
         run: |
           ./gradlew run
+
+      # Upload build artifacts
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output-${{ matrix.os }}-java${{ matrix.java }}
+          path: |
+            build/reports
+            build/libs
+          retention-days: 7
 

@@ -1,16 +1,22 @@
 name: 'Close stale issues and PRs'
 on:
   schedule:
-    - cron: '30 1 * * *'
+    - cron: '30 1 * * *'  # Run daily at 1:30 AM UTC
 
 jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
+      # Mark and close stale issues and PRs
       - uses: actions/stale@v4
         with:
+          # Message to post on stale issues
           stale-issue-message: 'This issue has no activity in a while - it will be closed soon.'
+          # Labels that exempt issues from being marked stale
           exempt-issue-labels: enhancement
+          # Message to post on stale PRs
           stale-pr-message: 'This PR has no activity in a while - it will be closed soon.'
+          # Number of days of inactivity before marking as stale
           days-before-stale: 42
+          # Number of days of inactivity before closing
           days-before-close: 7

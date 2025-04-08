@@ -1,6 +1,8 @@
 buildscript {
     ext {
+        // Use latest stable Kotlin version
         KOTLIN_VERSION = "2.1.20"
+        // Use latest stable KetherEUM version
         KETHEREUM_VERSION = "0.86.0"
     }
 
@@ -9,11 +11,14 @@ buildscript {
     }
 
     dependencies {
+        // Core Kotlin plugin
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${KOTLIN_VERSION}"
+        // Dependency version checker plugin
         classpath 'com.github.ben-manes:gradle-versions-plugin:0.52.0'
     }
 }
 
+// Apply Kotlin plugin to all subprojects
 subprojects {
     apply plugin: "kotlin"
 
@@ -23,4 +28,5 @@ subprojects {
     }
 }
 
+// Apply version checking plugin
 apply from: 'https://raw.githubusercontent.com/ligi/gradle-common/master/versions_plugin_stable_only.gradle'
